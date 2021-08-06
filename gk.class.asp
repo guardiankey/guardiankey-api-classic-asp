@@ -76,11 +76,22 @@ class GK
     dim JSON : set JSON = New JSONobject
     dim oJSONoutput
     set ServerXmlHttp = Server.CreateObject("MSXML2.ServerXMLHTTP.6.0")
+
+    On Error Resume Next
     ServerXmlHttp.open "POST", api_url
     ServerXmlHttp.setRequestHeader "Content-Type", "application/json"
     ServerXmlHttp.setRequestHeader "Accept", "text/plain"
     ServerXmlHttp.setRequestHeader "Content-Length", len(payload)
     ServerXmlHttp.send payload
+
+    If Err.Number <> 0 Then
+      set post_payload = JSON.Parse("{""response"": ""ERROR""}")
+      'response.write "Something went wrong!" ' DEBUG
+      On Error GoTo 0
+      Exit Function
+    End If
+    On Error GoTo 0
+
     if ServerXmlHttp.status = 200 then
         set oJSONoutput = JSON.Parse(ServerXmlHttp.responseText)
     else
