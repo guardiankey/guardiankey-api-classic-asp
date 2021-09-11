@@ -1,4 +1,4 @@
-﻿<%
+<%
 ' JSON object class 3.8.1 May, 29th - 2016
 ' https://github.com/rcdmk/aspJSON
 '
