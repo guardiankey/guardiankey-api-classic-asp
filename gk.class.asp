@@ -74,7 +74,7 @@ class GK
     jsonEvent.add "mh",       mh
     jsonEvent.add "su",       su
     ' response.write jsonEvent.serialize() ' DEBUG
-    create_event = jsonEvent.serialize()
+    create_gktinc_msg = jsonEvent.serialize()
   end function
 
   public function check_access(ByVal username, ByVal useremail, ByVal login_failed)
