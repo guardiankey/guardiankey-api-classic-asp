@@ -1,5 +1,5 @@
 <%
-Response.LCID = 1033
+Response.LCID = Session.LCID
 %>
 <!--#include file = "crypto.class.asp" -->
 <!--#include file = "jsonObject.class.asp" -->
@@ -12,6 +12,7 @@ class GK
   private service
   private agentId
   private api_url
+  private api_url_gktinc
 
   public default function Init(gk_conf)
       organization_id = gk_conf.item("organization_id")
@@ -21,6 +22,7 @@ class GK
       service         = gk_conf.item("service")
       agentId         = gk_conf.item("agentId")
       api_url         = "https://api.guardiankey.io/v2/checkaccess"
+      api_url_gktinc  = "https://api.guardiankey.io/v2/checkgktinc"
       set Init        = Me
   end function
 
@@ -57,6 +59,24 @@ class GK
     create_event = jsonEvent.serialize()
   end function
 
+  public function create_gktinc_msg(ByVal sa, ByVal o1, ByVal o2, ByVal username, ByVal mh, ByVal su)
+    set jsonEvent = new JSONobject
+    jsonEvent.add "timestamp",       ConvertToUnixTimeStamp(Now)
+    jsonEvent.add "agent_id",        agentId
+    jsonEvent.add "organization_id", organization_id
+    jsonEvent.add "authgroup_id",    authgroup_id
+    jsonEvent.add "service",         service
+    jsonEvent.add "sa",       sa
+    jsonEvent.add "o1",       o1
+    jsonEvent.add "o2",       o2
+    jsonEvent.add "username", username
+    jsonEvent.add "p",        ""
+    jsonEvent.add "mh",       mh
+    jsonEvent.add "su",       su
+    ' response.write jsonEvent.serialize() ' DEBUG
+    create_event = jsonEvent.serialize()
+  end function
+
   public function check_access(ByVal username, ByVal useremail, ByVal login_failed)
     dim crypt : set crypt = new crypto
     dim client_ip :  client_ip  = IP()
@@ -68,17 +88,29 @@ class GK
     jsonMsgObj.add "message", event_str
     jsonMsgObj.add "hash",    hash
     dim payload : payload = jsonMsgObj.serialize()
-    set check_access = post_payload(payload)
+    set check_access = post_payload(payload,api_url)
   end function
 
-  private function post_payload(ByVal payload)
+  public function check_gktinc(ByVal sa, ByVal o1, ByVal o2, ByVal username, ByVal mh, ByVal su)
+    dim crypt : set crypt = new crypto
+    dim event_str :  event_str     = create_gktinc_msg(sa, o1, o2, username, mh, su)
+    dim hash      :  hash = crypt.hash(event_str & key &  iv,"SHA256","Hex")
+    dim jsonMsgObj : set jsonMsgObj = new JSONobject
+    jsonMsgObj.add "id",      authgroup_id
+    jsonMsgObj.add "message", event_str
+    jsonMsgObj.add "hash",    hash
+    dim payload : payload = jsonMsgObj.serialize()
+    set check_gktinc = post_payload(payload,api_url_gktinc)
+  end function
+
+  private function post_payload(ByVal payload,api_url_here)
     ' response.write payload ' DEBUG
     dim JSON : set JSON = New JSONobject
     dim oJSONoutput
     set ServerXmlHttp = Server.CreateObject("MSXML2.ServerXMLHTTP.6.0")
 
     On Error Resume Next
-    ServerXmlHttp.open "POST", api_url
+    ServerXmlHttp.open "POST", api_url_here
     ServerXmlHttp.setRequestHeader "Content-Type", "application/json"
     ServerXmlHttp.setRequestHeader "Accept", "text/plain"
     ServerXmlHttp.setRequestHeader "Content-Length", len(payload)
